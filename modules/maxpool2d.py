@@ -1,4 +1,5 @@
 from modules.layer import Layer
+from modules.utils import im2col
 #from cython_modules.maxpool2d import maxpool_forward_cython
 import numpy as np
 
@@ -7,7 +8,7 @@ class MaxPool2D(Layer):
         self.kernel_size = kernel_size
         self.stride = stride
 
-    def forward(self, input, training=True):  # input: np.ndarray of shape [B, C, H, W]
+    def forward_old(self, input, training=True):  # input: np.ndarray of shape [B, C, H, W]
         self.input = input
         B, C, H, W = input.shape
         KH, KW = self.kernel_size, self.kernel_size
@@ -35,6 +36,32 @@ class MaxPool2D(Layer):
                         output[b, c, i, j] = max_val
                         self.max_indices[b, c, i, j] = (h_start + max_idx[0], w_start + max_idx[1])
 
+        return output
+
+    def forward(self, input, training=True):  # input: np.ndarray of shape [B, C, H, W]
+        self.input = input
+        B, C, H, W = input.shape
+        KH, KW = self.kernel_size, self.kernel_size
+        SH, SW = self.stride, self.stride
+
+        out_h = (H - KH) // SH + 1
+        out_w = (W - KW) // SW + 1
+
+        # B matrices of shape [C * KH * KW, out_h * out_w]
+        im2col_list = im2col(input, out_h, out_w, B, KH, KW, self.stride)
+        
+        # A single 3D array [B, C * KH * KW, out_h * out_w]
+        col_stacked = np.array(im2col_list)
+        
+        # Reshape to [B, C, KH * KW, out_h * out_w]
+        col_reshaped = col_stacked.reshape(B, C, KH * KW, out_h * out_w)
+
+        # Perform the max operation along the window dimension (axis 2)
+        output = np.max(col_reshaped, axis=2)
+        
+        # Reshape back to the standard [B, C, out_h, out_w]
+        output = output.reshape(B, C, out_h, out_w)
+        
         return output
 
     def backward(self, grad_output, learning_rate=None):
