@@ -1,5 +1,5 @@
 #PISTA: es esta la mejor forma de hacer una matmul?
-def matmul_biasses(A, B, C, bias):
+def matmul_biasses_old(A, B, C, bias):
     m, p, n = A.shape[0], A.shape[1], B.shape[1]
     
     for i in range(m):
@@ -9,3 +9,5 @@ def matmul_biasses(A, B, C, bias):
             C[i][j] += bias[j]
     return C
 
+def matmul_biasses(A, B, C, bias):
+    return A @ B + bias
