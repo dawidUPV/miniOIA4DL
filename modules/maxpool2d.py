@@ -59,6 +59,27 @@ class MaxPool2D(Layer):
         # Perform the max operation along the window dimension (axis 2)
         output = np.max(col_reshaped, axis=2)
         
+        # El siguiente bloque es para guardar los indices de los maximos, para el backward
+        # aunque no se utiliza en este proyecto
+        
+        # --- INICIO BLOQUE GENERADO CON IA ---
+        # Get indices of max values along window dimension
+        max_indices_linear = np.argmax(col_reshaped, axis=2)  # shape: (B, C, out_h, out_w)
+        
+        # Convert linear indices to (h_offset, w_offset) within each patch
+        h_offsets, w_offsets = np.unravel_index(max_indices_linear.flatten(), (KH, KW))
+        h_offsets = h_offsets.reshape(B, C, out_h, out_w)
+        w_offsets = w_offsets.reshape(B, C, out_h, out_w)
+        
+        # Convert to absolute coordinates by adding stride offsets
+        h_starts = np.arange(out_h).reshape(1, 1, out_h, 1) * SH
+        w_starts = np.arange(out_w).reshape(1, 1, 1, out_w) * SW
+        
+        self.max_indices = np.zeros((B, C, out_h, out_w, 2), dtype=int)
+        self.max_indices[:, :, :, :, 0] = h_starts + h_offsets
+        self.max_indices[:, :, :, :, 1] = w_starts + w_offsets
+        # --- FIN BLOQUE GENERADO CON IA ---
+        
         # Reshape back to the standard [B, C, out_h, out_w]
         output = output.reshape(B, C, out_h, out_w)
         
