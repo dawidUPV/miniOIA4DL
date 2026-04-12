@@ -14,7 +14,9 @@ class Conv2D(Layer):
         
         # MODIFICAR: Añadir nuevo if-else para otros algoritmos de convolución
         if conv_algo == 0:
-            self.mode = 'direct' 
+            self.mode = 'direct'
+        elif conv_algo == 1:
+            self.mode = 'im2col'
         else:
             print(f"Algoritmo {conv_algo} no soportado aún")
             self.mode = 'direct' 
@@ -60,6 +62,8 @@ class Conv2D(Layer):
         # PISTA: Usar estos if-else si implementas más algoritmos de convolución
         if self.mode == 'direct':
             return self._forward_direct(input)
+        elif self.mode == 'im2col':
+            return self._gemm_im2col(input)
         else:
             raise ValueError("Mode must be 'direct")
 
@@ -137,3 +141,51 @@ class Conv2D(Layer):
         return grad_input
 
     # PISTA: Se te ocurren otros algoritmos de convolución?
+
+    def _im2col(self, input, out_h, out_w, batch_size, k_h, k_w):
+        im2col_list = []
+        for b in range(batch_size):
+            cols = [
+                input[ b, :,
+                       i * self.stride : i * self.stride + k_h,
+                       j * self.stride : j * self.stride + k_w].reshape(-1)
+                for i in range(out_h)
+                for j in range(out_w)
+            ]
+
+            im2col_list.append(np.array(cols).T)
+
+        return im2col_list
+    
+    def _gemm_im2col(self, input):
+        # ### Lo mismo que en el metodo base
+        batch_size, _, in_h, in_w = input.shape
+        k_h, k_w = self.kernel_size, self.kernel_size
+
+        if self.padding > 0:
+            input = np.pad(input,
+                           ((0, 0), (0, 0), (self.padding, self.padding), (self.padding, self.padding)),
+                           mode='constant').astype(np.float32)
+
+        out_h = (input.shape[2] - k_h) // self.stride + 1
+        out_w = (input.shape[3] - k_w) // self.stride + 1
+        output = np.zeros((batch_size, self.out_channels, out_h, out_w), dtype=np.float32)
+
+        # ### im2col + GEMM:
+
+        im2col_list = self._im2col(input, out_h, out_w, batch_size, k_h, k_w)
+
+        # Reshape kernels to (out_channels, in_channels * k_h * k_w)
+        kernels_reshaped = self.kernels.reshape(self.out_channels, -1)
+
+        for b in range(batch_size):
+            # im2col_list[b] shape: (in_channels * k_h * k_w, out_h * out_w)
+            # kernels_reshaped shape: (out_channels, in_channels * k_h * k_w)
+            # out: (out_channels, out_h * out_w)
+            out = kernels_reshaped @ im2col_list[b]
+
+            # Reshape to (out_channels, out_h, out_w) and add biases
+            output[b] = out.reshape(self.out_channels, out_h, out_w)
+            output[b] += self.biases[:, None, None]
+
+        return output
