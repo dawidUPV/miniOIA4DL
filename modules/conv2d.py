@@ -141,21 +141,6 @@ class Conv2D(Layer):
         return grad_input
 
     # PISTA: Se te ocurren otros algoritmos de convolución?
-
-    def _im2col(self, input, out_h, out_w, batch_size, k_h, k_w):
-        im2col_list = []
-        for b in range(batch_size):
-            cols = [
-                input[ b, :,
-                       i * self.stride : i * self.stride + k_h,
-                       j * self.stride : j * self.stride + k_w].reshape(-1)
-                for i in range(out_h)
-                for j in range(out_w)
-            ]
-
-            im2col_list.append(np.array(cols).T)
-
-        return im2col_list
     
     def _gemm_im2col(self, input):
         # ### Lo mismo que en el metodo base
@@ -173,7 +158,7 @@ class Conv2D(Layer):
 
         # ### im2col + GEMM:
 
-        im2col_list = self._im2col(input, out_h, out_w, batch_size, k_h, k_w)
+        im2col_list = im2col(input, out_h, out_w, batch_size, k_h, k_w, self.stride)
 
         # Reshape kernels to (out_channels, in_channels * k_h * k_w)
         kernels_reshaped = self.kernels.reshape(self.out_channels, -1)
