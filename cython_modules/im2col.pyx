@@ -1,6 +1,7 @@
 import numpy as np
 cimport numpy as np
 
+# --- INICIO BLOQUE GENERADO CON IA ---
 ctypedef float DTYPE_t
 
 def im2col_forward_cython(float[:, :, :, :] input, 
@@ -29,3 +30,4 @@ def im2col_forward_cython(float[:, :, :, :] input,
                                 input[b, c, i * stride + ii, j * stride + jj]
                                 
     return np.asarray(output)
+# --- FIN BLOQUE GENERADO CON IA ---
