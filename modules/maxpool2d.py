@@ -1,6 +1,10 @@
 from modules.layer import Layer
 from modules.utils import im2col
-#from cython_modules.maxpool2d import maxpool_forward_cython
+try:
+    from cython_modules.im2col import im2col_forward_cython
+    CYTHON_AVAILABLE = True
+except ImportError:
+    CYTHON_AVAILABLE = False
 import numpy as np
 
 class MaxPool2D(Layer):
@@ -49,6 +53,11 @@ class MaxPool2D(Layer):
 
         # B matrices of shape [C * KH * KW, out_h * out_w]
         im2col_list = im2col(input, out_h, out_w, B, KH, KW, self.stride)
+        if CYTHON_AVAILABLE:
+            im2col_array = im2col_forward_cython(input.astype(np.float32), out_h, out_w, B, KH, KW, self.stride)
+            im2col_list = [im2col_array[b] for b in range(B)]
+        else:
+            im2col_list = im2col(input, out_h, out_w, B, KH, KW, self.stride)
         
         # A single 3D array [B, C * KH * KW, out_h * out_w]
         col_stacked = np.array(im2col_list)

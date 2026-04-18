@@ -167,12 +167,10 @@ class Conv2D(Layer):
         # ### im2col + GEMM:
 
         if CYTHON_AVAILABLE:
-            print("USANDO CYTHON IM2COL")
             im2col_array = im2col_forward_cython(input.astype(np.float32), out_h, out_w, batch_size, 
                                                  k_h, k_w, self.stride)
             im2col_list = [im2col_array[b] for b in range(batch_size)]
         else:
-            print("XXXXXXX")
             im2col_list = im2col(input, out_h, out_w, batch_size, k_h, k_w, self.stride)
 
         # Reshape kernels to (out_channels, in_channels * k_h * k_w)
