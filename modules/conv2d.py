@@ -1,6 +1,10 @@
 from modules.layer import Layer
 from modules.utils import *
-#from cython_modules.im2col import im2col_forward_cython
+try:
+    from cython_modules.im2col import im2col_forward_cython
+    CYTHON_AVAILABLE = True
+except ImportError:
+    CYTHON_AVAILABLE = False
 
 import numpy as np
 
@@ -17,6 +21,8 @@ class Conv2D(Layer):
             self.mode = 'direct'
         elif conv_algo == 1:
             self.mode = 'im2col'
+        elif conv_algo == 2:
+            self.mode = 'im2colfused'
         else:
             print(f"Algoritmo {conv_algo} no soportado aún")
             self.mode = 'direct' 
@@ -64,8 +70,10 @@ class Conv2D(Layer):
             return self._forward_direct(input)
         elif self.mode == 'im2col':
             return self._gemm_im2col(input)
+        elif self.mode == 'im2colfused':
+            return self._gemm_im2col(input)
         else:
-            raise ValueError("Mode must be 'direct")
+            raise ValueError("Mode must be 'direct', 'im2col'")
 
     def backward(self, grad_output, learning_rate):
         # ESTO NO ES NECESARIO YA QUE NO VAIS A HACER BACKPROPAGATION
@@ -158,7 +166,14 @@ class Conv2D(Layer):
 
         # ### im2col + GEMM:
 
-        im2col_list = im2col(input, out_h, out_w, batch_size, k_h, k_w, self.stride)
+        if CYTHON_AVAILABLE:
+            print("USANDO CYTHON IM2COL")
+            im2col_array = im2col_forward_cython(input.astype(np.float32), out_h, out_w, batch_size, 
+                                                 k_h, k_w, self.stride)
+            im2col_list = [im2col_array[b] for b in range(batch_size)]
+        else:
+            print("XXXXXXX")
+            im2col_list = im2col(input, out_h, out_w, batch_size, k_h, k_w, self.stride)
 
         # Reshape kernels to (out_channels, in_channels * k_h * k_w)
         kernels_reshaped = self.kernels.reshape(self.out_channels, -1)
