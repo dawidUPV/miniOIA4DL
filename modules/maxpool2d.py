@@ -51,6 +51,9 @@ class MaxPool2D(Layer):
         out_h = (H - KH) // SH + 1
         out_w = (W - KW) // SW + 1
 
+        # --- INICIO BLOQUE GENERADO CON IA ---
+        # Se ha usado IA para utilizar im2col con max pooling y asi evitar los bucles anidados
+
         # B matrices of shape [C * KH * KW, out_h * out_w]
         im2col_list = im2col(input, out_h, out_w, B, KH, KW, self.stride)
         if CYTHON_AVAILABLE:
@@ -67,6 +70,8 @@ class MaxPool2D(Layer):
 
         # Perform the max operation along the window dimension (axis 2)
         output = np.max(col_reshaped, axis=2)
+
+        # --- FIN BLOQUE GENERADO CON IA ---
         
         # El siguiente bloque es para guardar los indices de los maximos, para el backward
         # aunque no se utiliza en este proyecto
