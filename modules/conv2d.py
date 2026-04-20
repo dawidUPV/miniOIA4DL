@@ -179,9 +179,15 @@ class Conv2D(Layer):
         kernels_reshaped = self.kernels.reshape(self.out_channels, -1)
 
         for b in range(batch_size):
+            # --- INICIO BLOQUE GENERADO CON IA ---
+            # Se ha utilizado IA para entender las dimensiones
+
             # im2col_list[b] shape: (in_channels * k_h * k_w, out_h * out_w)
             # kernels_reshaped shape: (out_channels, in_channels * k_h * k_w)
             # out: (out_channels, out_h * out_w)
+
+            # --- FIN BLOQUE GENERADO CON IA ---
+            
             out = kernels_reshaped @ im2col_list[b]
 
             # Reshape to (out_channels, out_h, out_w) and add biases
