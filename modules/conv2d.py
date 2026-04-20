@@ -1,10 +1,12 @@
 from modules.layer import Layer
 from modules.utils import *
+# --- INICIO BLOQUE GENERADO CON IA ---
 try:
     from cython_modules.im2col import im2col_forward_cython
     CYTHON_AVAILABLE = True
 except ImportError:
     CYTHON_AVAILABLE = False
+# --- FIN BLOQUE GENERADO CON IA ---
 
 import numpy as np
 
